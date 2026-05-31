@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  password String?
+  name     String?
+  picture  String?
+
+  role   String  @default("user")
+  enable Boolean @default(true)
+
+  address       String?
+  //customer
+  orders        Order[] //1userมีหลายตะกร้า
+  carts         Cart[] //1ตะกร้ามีหลายuser
+  //farmer
+  products      Product[]      @relation("FarmerProducts")
+  farmerProfile FarmerProfile?
+
+  createdAt DateTime @default(now()) //เวลาที่ลงฐานข้อมูล
+  updatedAt DateTime @updatedAt
+  reviews   Review[]
+}
+
+model FarmerProfile {
+  id          Int     @id @default(autoincrement())
+  farmName    String
+  phone       String
+  description String?
+  address     String
+  image       String?
+
+  isApproved Boolean @default(false)
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id Int @id @default(autoincrement())
+
+  title       String
+  description String
+  price       Float
+
+  //organic product info
+  origin      String? //แสดงแหล่งที่ปลูก
+  unit        String? //แสดงหน่วยสินค้า กิโล ถุง 
+  harvestDate DateTime? //วันที่เก็บเกี่ยวผัก
+  organic     Boolean   @default(true)
+
+  //relation
+  farmer   User?    @relation("FarmerProducts", fields: [farmerId], references: [id])
+  farmerId Int?
+  reviews  Review[]
+
+  sold       Int              @default(0)
+  quantity   Int
+  orderItems ProductOnOrder[]
+  cartItems  ProductOnCart[]
+  images     Image[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  category   Category?        @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+}
+
+model Order {
+  id             Int              @id @default(autoincrement())
+  products       ProductOnOrder[]
+  cartTotal      Float
+  orderStatus    String           @default("Pending")
+  trackingNumber String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  orderedBy      User             @relation(fields: [orderedById], references: [id])
+  orderedById    Int
+}
+
+model ProductOnOrder {
+  id        Int     @id @default(autoincrement())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   Int
+  count     Int
+  price     Float
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Cart {
+  id          Int             @id @default(autoincrement())
+  products    ProductOnCart[]
+  cartTotal   Float
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  orderedBy   User            @relation(fields: [orderedById], references: [id])
+  orderedById Int
+}
+
+model ProductOnCart {
+  id        Int     @id @default(autoincrement())
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId    Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  count     Int
+  price     Float
+}
+
+model Image {
+  id         Int      @id @default(autoincrement())
+  asset_id   String
+  public_id  String
+  url        String
+  secure_url String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  Int
+}
+
+model Review {
+  id Int @id @default(autoincrement())
+
+  rating  Int
+  comment String?
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  createdAt DateTime @default(now())
+}
