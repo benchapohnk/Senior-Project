@@ -73,3 +73,38 @@ exports.listReviews = async(req,res)=>{
         })
     }
 }
+exports.getProductRating = async(req,res)=>{
+    try{
+
+        const { productId } = req.params
+
+        const reviews = await prisma.review.findMany({
+            where:{
+                productId:Number(productId)
+            }
+        })
+
+        const reviewCount = reviews.length
+
+        const avgRating =
+            reviewCount > 0
+            ? reviews.reduce(
+                (sum,item)=>sum + item.rating,
+                0
+              ) / reviewCount
+            : 0
+
+        res.json({
+            avgRating:Number(avgRating.toFixed(1)),
+            reviewCount
+        })
+
+    }catch(err){
+
+        console.log(err)
+
+        res.status(500).json({
+            message:'Server Error'
+        })
+    }
+}

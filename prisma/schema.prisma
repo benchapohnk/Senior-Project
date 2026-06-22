@@ -42,6 +42,12 @@ model FarmerProfile {
   address     String
   image       String?
 
+  provinceTH String?
+  provinceEN String?
+
+  latitude  Float?
+  longitude Float?
+
   isApproved Boolean @default(false)
 
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)

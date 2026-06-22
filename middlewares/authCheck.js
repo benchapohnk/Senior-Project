@@ -46,7 +46,7 @@ exports.authCheck = async(req,res,next)=>{
         message:'Token Invalid!!'
     })
 }
-}
+    }
 
 exports.adminCheck = async(req,res,next)=>{
     try{
@@ -90,6 +90,38 @@ exports.farmerCheck = async(req,res,next)=>{
 
         res.status(500).json({
             message:'Error Farmer Access Denied'
+        })
+    }
+}
+exports.approvedFarmerCheck = async(req,res,next)=>{
+    try{
+
+        const farmer = await prisma.farmerProfile.findUnique({
+            where:{
+                userId:req.user.id
+            }
+        })
+
+        if(!farmer){
+            return res.status(404).json({
+                message:'Farmer profile not found'
+            })
+        }
+
+        if(!farmer.isApproved){
+            return res.status(403).json({
+                message:'Waiting for admin approval'
+            })
+        }
+
+        next()
+
+    }catch(err){
+
+        console.log(err)
+
+        res.status(500).json({
+            message:'Server Error'
         })
     }
 }

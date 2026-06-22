@@ -7,18 +7,26 @@ const {
 
 const {
     createReview,
-    listReviews
+    listReviews,
+    getProductRating
 } = require('../controllers/review')
 
+// สร้างรีวิว
 router.post(
     '/review',
     authCheck,
     createReview
 )
 
+// ดูรีวิวสินค้า
 router.get(
     '/reviews/:productId',
     listReviews
+)
+
+router.get(
+    '/product-rating/:productId',
+    getProductRating
 )
 
 module.exports = router

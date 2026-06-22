@@ -50,103 +50,121 @@ exports.changeRole = async(req, res) => {
 }
 exports.userCart = async(req, res) => {
     try {
-        //code
+
         const { cart } = req.body
-        console.log(cart)
-        console.log(req.user.id)
-       
+
+        // เช็ค cart ว่าง
+        if(!cart || cart.length === 0){
+            return res.status(400).json({
+                message:'Cart is empty'
+            })
+        }
 
         const user = await prisma.user.findFirst({
-            where:{ id : Number(req.user.id)}
+            where:{
+                id:Number(req.user.id)
+            }
         })
-        // console.log(user)
-        //delete old cart item
+
+        if(!user){
+            return res.status(404).json({
+                message:'User not found'
+            })
+        }
+
+        // ลบ cart เก่า
         await prisma.productOnCart.deleteMany({
             where:{
-                cart: {
-                    orderedById: user.id
+                cart:{
+                    orderedById:user.id
                 }
             }
         })
 
-        //delete old cart
         await prisma.cart.deleteMany({
-            where: { orderedById : user.id }
-        })
-
-        //เตรียมสินค้า
-        // let products = cart.map((item)=>({
-        //     productId : item.id,
-        //     count: item.count,
-        //     price: item.price
-        // }))
-        let products = []
-
-for (const item of cart){
-
-   if(isNaN(item.count)){
-      return res.status(400).json({
-         message:'Count must be number'
-      })
-   }
-
-   if(item.count <= 0){
-      return res.status(400).json({
-         message:'Invalid quantity'
-      })
-   }
-
-   const productFromDB = await prisma.product.findUnique({
-      where:{
-         id: item.id
-      }
-   })
-
-   if(!productFromDB){
-      return res.status(400).json({
-         message:'Product not found'
-      })
-   }
-
-   if(item.count > productFromDB.quantity){
-      return res.status(400).json({
-         message:'Stock not enough'
-      })
-   }
-
-   products.push({
-      productId: item.id,
-      count: item.count,
-      price: productFromDB.price
-   })
-}
-        //หาผลรวม
-        let cartTotal = products.reduce((sum, item)=> 
-            sum+item.price * item.count,0)
-
-        //new cart
-        const newCart = await prisma.cart.create({
-            data:{
-                products: {
-                    create: products
-                },
-                cartTotal: cartTotal,
+            where:{
                 orderedById:user.id
             }
         })
-        console.log(newCart)
-        res.send('Add Cart Ok')
-    }catch (err){
+
+        let products = []
+
+        for(const item of cart){
+
+            // ตรวจสอบจำนวน
+            if(isNaN(item.count)){
+                return res.status(400).json({
+                    message:'Count must be number'
+                })
+            }
+
+            if(item.count <= 0){
+                return res.status(400).json({
+                    message:'Invalid quantity'
+                })
+            }
+
+            const productFromDB = await prisma.product.findUnique({
+                where:{
+                    id:Number(item.id)
+                }
+            })
+
+            if(!productFromDB){
+                return res.status(404).json({
+                    message:'Product not found'
+                })
+            }
+
+            // เช็ค stock
+            if(item.count > productFromDB.quantity){
+                return res.status(400).json({
+                    message:'Stock not enough'
+                })
+            }
+
+            products.push({
+                productId: productFromDB.id,
+                count: Number(item.count),
+                price: productFromDB.price
+            })
+        }
+
+        const cartTotal = products.reduce(
+            (sum,item)=> sum + (item.price * item.count),
+            0
+        )
+
+        const newCart = await prisma.cart.create({
+            data:{
+                products:{
+                    create:products
+                },
+                cartTotal,
+                orderedById:user.id
+            }
+        })
+
+        res.json({
+            ok:true,
+            message:'Add Cart Success',
+            cart:newCart
+        })
+
+    }catch(err){
+
         console.log(err)
-        res.status(500).json({message:'Server Error'})
+
+        res.status(500).json({
+            message:'Server Error'
+        })
     }
 }
-exports.getUserCart = async(req, res) => {
-    try {
-        //code
+exports.getUserCart = async(req,res)=>{
+    try{
         const cart = await prisma.cart.findFirst({
             where:{
-                orderedById: Number(req.user.id)
+                orderedById:Number(req.user.id)
             },
             include:{
                 products:{
@@ -156,14 +174,26 @@ exports.getUserCart = async(req, res) => {
                 }
             }
         })
-        console.log(cart)
+
+        // ไม่มี cart
+        if(!cart){
+            return res.status(404).json({
+                message:'Cart not found'
+            })
+        }
+
         res.json({
-            products: cart.products,
+            products:cart.products,
             cartTotal:cart.cartTotal
         })
-    }catch (err){
+
+    }catch(err){
+
         console.log(err)
-        res.status(500).json({message:'Server Error'})
+
+        res.status(500).json({
+            message:'Server Error'
+        })
     }
 }
 exports.emptyCart = async(req, res) => {
@@ -309,5 +339,28 @@ exports.getOrder = async(req, res) => {
     }catch (err){
         console.log(err)
         res.status(500).json({message:'Server Error'})
+    }
+}
+exports.currentUser = async(req,res)=>{
+    try{
+
+        const user = await prisma.user.findUnique({
+            where:{
+                id:req.user.id
+            },
+            select:{
+                id:true,
+                email:true,
+                role:true,
+                address:true
+            }
+        })
+
+        res.json(user)
+
+    }catch(err){
+        res.status(500).json({
+            message:'Server Error'
+        })
     }
 }

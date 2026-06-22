@@ -5,7 +5,8 @@ const router = express.Router()
 const {
     authCheck,
     farmerCheck,
-    adminCheck
+    adminCheck,
+    approvedFarmerCheck
 } = require('../middlewares/authCheck')
 
 // controller
@@ -13,7 +14,12 @@ const {
     registerFarmer,
     currentFarmer,
     listFarmers,
-    approveFarmer
+    approveFarmer,
+    getFarmerOrders,
+    updateOrderStatus,
+    farmerDashboard,
+    searchFarmers,
+    updateFarmerProfile
 } = require('../controllers/farmer')
 
 
@@ -30,6 +36,7 @@ router.get(
     '/current-farmer',
     authCheck,
     farmerCheck,
+    approvedFarmerCheck,
     currentFarmer
 )
 
@@ -48,5 +55,30 @@ router.put(
     adminCheck,
     approveFarmer
 )
+router.get(
+    '/farmer/orders',
+    authCheck,
+    farmerCheck,
+    getFarmerOrders
+)
+router.put(
+    '/farmer/order-status',
+    authCheck,
+    farmerCheck,
+    updateOrderStatus
+)
+router.get(
+    '/farmer/dashboard',
+    authCheck,
+    farmerCheck,
+    farmerDashboard
+)
 
+router.get(
+    '/farmers/search',
+    searchFarmers
+)
+router.put(
+    '/farmer/profile',authCheck,farmerCheck,updateFarmerProfile
+)
 module.exports = router

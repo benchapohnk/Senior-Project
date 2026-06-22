@@ -7,6 +7,24 @@ const prisma = require("../config/prisma")
             unit,
             harvestDate,
             organic} = req.body
+
+            if(!title || !price || !quantity){
+    return res.status(400).json({
+        message:'Please fill all required fields'
+    })
+}
+
+if(quantity <= 0){
+    return res.status(400).json({
+        message:'Quantity must be greater than 0'
+    })
+}
+
+if(price <= 0){
+    return res.status(400).json({
+        message:'Price must be greater than 0'
+    })
+}
         // console.log(title,description,price,quantity,images)
         const product = await prisma.product.create({
             data:{
@@ -130,8 +148,14 @@ exports.update = async(req,res)=>{
                 id:Number(req.params.id)
             }
         })
+// เช็คว่ามีสินค้ามั้ย
+        if(!existingProduct){
+            return res.status(404).json({
+             message:'Product not found'
+            })
+        }
 
-        // 
+        // เช็คเจ้าของสินค้า
         if(existingProduct.farmerId !== req.user.id){
             return res.status(403).json({
                 message:'Access Denied'
@@ -157,7 +181,6 @@ exports.update = async(req,res)=>{
                     : null,
                 origin,
                 unit,
-                harvestDate,
                 organic,
                 harvestDate: harvestDate
                 ? new Date(harvestDate)
@@ -191,6 +214,11 @@ exports.remove = async(req,res)=>{
                 id:Number(id)
             }
         })
+        if(!product){
+            return res.status(404).json({
+              message:'Product not found'
+             })
+        }
 
         if(product.farmerId !== req.user.id){
             return res.status(403).json({
